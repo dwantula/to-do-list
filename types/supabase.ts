@@ -6,28 +6,34 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type TodoStatus = 'to-do' | 'in progress' | 'done'
+
 export interface Database {
   public: {
     Tables: {
-      // Dodaj tutaj swoje tabele z Supabase
-      // Przykład:
-      // users: {
-      //   Row: {
-      //     id: string
-      //     email: string
-      //     created_at: string
-      //   }
-      //   Insert: {
-      //     id?: string
-      //     email: string
-      //     created_at?: string
-      //   }
-      //   Update: {
-      //     id?: string
-      //     email?: string
-      //     created_at?: string
-      //   }
-      // }
+      todos: {
+        Row: {
+          id: number
+          text: string
+          status: TodoStatus
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: never
+          text: string
+          status?: TodoStatus
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: never
+          text?: string
+          status?: TodoStatus
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       // Dodaj tutaj swoje widoki
@@ -36,7 +42,7 @@ export interface Database {
       // Dodaj tutaj swoje funkcje
     }
     Enums: {
-      // Dodaj tutaj swoje enumy
+      todo_status: TodoStatus
     }
   }
 }

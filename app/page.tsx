@@ -1,38 +1,62 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getTodos, addTodo as addTodoSupabase, updateTodoStatus, deleteTodo as deleteTodoSupabase } from '@/lib/supabase/todos';
+import { Database, TodoStatus } from '@/types/supabase';
 
-type TodoStatus = 'to-do' | 'in progress' | 'done';
-
-interface Todo {
-  id: number;
-  text: string;
-  status: TodoStatus;
-}
+type Todo = Database['public']['Tables']['todos']['Row'];
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [todoToDelete, setTodoToDelete] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const addTodo = () => {
-    if (inputValue.trim() === '') return;
+  useEffect(() => {
+    loadTodos();
+  }, []);
 
-    const newTodo: Todo = {
-      id: Date.now(),
-      text: inputValue,
-      status: 'to-do',
-    };
-
-    setTodos([...todos, newTodo]);
-    setInputValue('');
+  const loadTodos = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await getTodos();
+      setTodos(data);
+    } catch (err) {
+      setError('Nie udało się załadować zadań');
+      console.error('Error loading todos:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const changeStatus = (id: number, newStatus: TodoStatus) => {
-    setTodos(todos.map(todo =>
-      todo.id === id ? { ...todo, status: newStatus } : todo
-    ));
+  const addTodo = async () => {
+    if (inputValue.trim() === '') return;
+
+    try {
+      setError(null);
+      const newTodo = await addTodoSupabase(inputValue);
+      setTodos([newTodo, ...todos]);
+      setInputValue('');
+    } catch (err) {
+      setError('Nie udało się dodać zadania');
+      console.error('Error adding todo:', err);
+    }
+  };
+
+  const changeStatus = async (id: number, newStatus: TodoStatus) => {
+    try {
+      setError(null);
+      await updateTodoStatus(id, newStatus);
+      setTodos(todos.map(todo =>
+        todo.id === id ? { ...todo, status: newStatus } : todo
+      ));
+    } catch (err) {
+      setError('Nie udało się zmienić statusu');
+      console.error('Error updating status:', err);
+    }
   };
 
   const confirmDelete = (id: number) => {
@@ -40,11 +64,20 @@ export default function Home() {
     setShowDeleteDialog(true);
   };
 
-  const deleteTodo = () => {
+  const deleteTodo = async () => {
     if (todoToDelete !== null) {
-      setTodos(todos.filter(todo => todo.id !== todoToDelete));
-      setShowDeleteDialog(false);
-      setTodoToDelete(null);
+      try {
+        setError(null);
+        await deleteTodoSupabase(todoToDelete);
+        setTodos(todos.filter(todo => todo.id !== todoToDelete));
+        setShowDeleteDialog(false);
+        setTodoToDelete(null);
+      } catch (err) {
+        setError('Nie udało się usunąć zadania');
+        console.error('Error deleting todo:', err);
+        setShowDeleteDialog(false);
+        setTodoToDelete(null);
+      }
     }
   };
 
@@ -65,6 +98,13 @@ export default function Home() {
         <h1 className="text-4xl font-bold text-center mb-8 text-gray-800 dark:text-gray-100">
           Lista Zadań
         </h1>
+
+        {/* Error message */}
+        {error && (
+          <div className="bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
 
         {/* Input section */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
@@ -88,7 +128,11 @@ export default function Home() {
 
         {/* Todo list */}
         <div className="space-y-3">
-          {todos.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              Ładowanie zadań...
+            </div>
+          ) : todos.length === 0 ? (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               Brak zadań. Dodaj nowe zadanie powyżej!
             </div>
