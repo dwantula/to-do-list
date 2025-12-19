@@ -146,27 +146,45 @@ export default function Home() {
                   <p className="text-gray-800 dark:text-gray-200">{todo.text}</p>
                 </div>
 
-                <select
-                  value={todo.status}
-                  onChange={(e) => changeStatus(todo.id, e.target.value as TodoStatus)}
-                  className={`px-3 py-1 rounded-lg border font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    todo.status === 'to-do'
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'
-                      : todo.status === 'in progress'
-                      ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700'
-                      : 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700'
-                  }`}
-                >
-                  <option value="to-do">To-Do</option>
-                  <option value="in progress">In Progress</option>
-                  <option value="done">Done</option>
-                </select>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => changeStatus(todo.id, 'to-do')}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                      todo.status === 'to-do'
+                        ? 'bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 shadow-md scale-105'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    To-Do
+                  </button>
+                  <button
+                    onClick={() => changeStatus(todo.id, 'in progress')}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                      todo.status === 'in progress'
+                        ? 'bg-yellow-200 dark:bg-yellow-700 text-yellow-800 dark:text-yellow-200 shadow-md scale-105'
+                        : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-700'
+                    }`}
+                  >
+                    In Progress
+                  </button>
+                  <button
+                    onClick={() => changeStatus(todo.id, 'done')}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                      todo.status === 'done'
+                        ? 'bg-green-200 dark:bg-green-700 text-green-800 dark:text-green-200 shadow-md scale-105'
+                        : 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-700'
+                    }`}
+                  >
+                    Done
+                  </button>
+                </div>
 
                 <button
                   onClick={() => confirmDelete(todo.id)}
-                  className="px-4 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
+                  className="w-8 h-8 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold text-lg transition-colors"
+                  title="Delete task"
                 >
-                  Delete
+                  ×
                 </button>
               </div>
             ))
