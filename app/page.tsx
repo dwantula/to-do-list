@@ -13,6 +13,7 @@ export default function Home() {
   const [todoToDelete, setTodoToDelete] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showNotification, setShowNotification] = useState(false);
 
   useEffect(() => {
     loadTodos();
@@ -40,6 +41,8 @@ export default function Home() {
       const newTodo = await addTodoSupabase(inputValue);
       setTodos([newTodo, ...todos]);
       setInputValue('');
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 3000);
     } catch (err) {
       setError('Failed to add task');
       console.error('Error adding todo:', err);
@@ -94,6 +97,18 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-8 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      {/* Success notification */}
+      {showNotification && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
+          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="font-medium">Task added to the todo list!</span>
+          </div>
+        </div>
+      )}
+
       <div className="w-full max-w-2xl">
         <h1 className="text-4xl font-bold text-center mb-8 text-gray-800 dark:text-gray-100">
           Task List
