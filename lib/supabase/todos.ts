@@ -54,6 +54,24 @@ export async function updateTodoStatus(id: number, status: TodoStatus) {
   return data as Todo
 }
 
+export async function updateTodoText(id: number, text: string) {
+  const supabase = createClient()
+
+  const { data, error } = await supabase
+    .from('todos')
+    .update({ text })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating todo text:', error)
+    throw error
+  }
+
+  return data as Todo
+}
+
 export async function deleteTodo(id: number) {
   const supabase = createClient()
 
