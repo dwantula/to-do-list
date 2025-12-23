@@ -9,7 +9,7 @@ export async function getTodos() {
   const { data, error } = await supabase
     .from('todos')
     .select('*')
-    .order('created_at', { ascending: false })
+    .order('position', { ascending: true })
 
   if (error) {
     console.error('Error fetching todos:', error)
@@ -83,6 +83,45 @@ export async function deleteTodo(id: number) {
   if (error) {
     console.error('Error deleting todo:', error)
     throw error
+  }
+
+  return true
+}
+
+export async function updateTodoPosition(id: number, position: number) {
+  const supabase = createClient()
+
+  const { data, error } = await supabase
+    .from('todos')
+    .update({ position })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('Error updating todo position:', error)
+    throw error
+  }
+
+  return data as Todo
+}
+
+export async function reorderTodos(todos: { id: number; position: number }[]) {
+  const supabase = createClient()
+
+  const updates = todos.map(({ id, position }) =>
+    supabase
+      .from('todos')
+      .update({ position })
+      .eq('id', id)
+  )
+
+  const results = await Promise.all(updates)
+
+  const errors = results.filter(result => result.error)
+  if (errors.length > 0) {
+    console.error('Error reordering todos:', errors)
+    throw new Error('Failed to reorder todos')
   }
 
   return true

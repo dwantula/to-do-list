@@ -16,6 +16,7 @@ export interface Database {
           id: number
           text: string
           status: TodoStatus
+          position: number
           created_at: string
           updated_at: string
         }
@@ -23,6 +24,7 @@ export interface Database {
           id?: never
           text: string
           status?: TodoStatus
+          position?: number
           created_at?: string
           updated_at?: string
         }
@@ -30,6 +32,7 @@ export interface Database {
           id?: never
           text?: string
           status?: TodoStatus
+          position?: number
           created_at?: string
           updated_at?: string
         }
