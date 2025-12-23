@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTodos, addTodo as addTodoSupabase, updateTodoStatus, updateTodoText, deleteTodo as deleteTodoSupabase } from '@/lib/supabase/todos';
+import { getTodos, addTodo as addTodoSupabase, updateTodoStatus, updateTodoText, deleteTodo as deleteTodoSupabase, reorderTodos } from '@/lib/supabase/todos';
 import { Database, TodoStatus } from '@/types/supabase';
 
 type Todo = Database['public']['Tables']['todos']['Row'];
@@ -16,6 +16,8 @@ export default function Home() {
   const [showNotification, setShowNotification] = useState(false);
   const [editingTodoId, setEditingTodoId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState('');
+  const [draggedItemId, setDraggedItemId] = useState<number | null>(null);
+  const [dragOverItemId, setDragOverItemId] = useState<number | null>(null);
 
   useEffect(() => {
     loadTodos();
@@ -134,6 +136,75 @@ export default function Home() {
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, id: number) => {
+    setDraggedItemId(id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, id: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverItemId(id);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverItemId(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetId: number) => {
+    e.preventDefault();
+
+    if (draggedItemId === null || draggedItemId === targetId) {
+      setDraggedItemId(null);
+      setDragOverItemId(null);
+      return;
+    }
+
+    try {
+      setError(null);
+
+      // Create a new array with reordered items
+      const draggedIndex = todos.findIndex(todo => todo.id === draggedItemId);
+      const targetIndex = todos.findIndex(todo => todo.id === targetId);
+
+      if (draggedIndex === -1 || targetIndex === -1) return;
+
+      const newTodos = [...todos];
+      const [draggedItem] = newTodos.splice(draggedIndex, 1);
+      newTodos.splice(targetIndex, 0, draggedItem);
+
+      // Update positions
+      const updatedTodos = newTodos.map((todo, index) => ({
+        ...todo,
+        position: index
+      }));
+
+      // Optimistically update UI
+      setTodos(updatedTodos);
+
+      // Update database
+      const positionUpdates = updatedTodos.map(todo => ({
+        id: todo.id,
+        position: todo.position
+      }));
+
+      await reorderTodos(positionUpdates);
+    } catch (err) {
+      setError('Failed to reorder tasks');
+      console.error('Error reordering todos:', err);
+      // Reload todos on error to restore original order
+      loadTodos();
+    } finally {
+      setDraggedItemId(null);
+      setDragOverItemId(null);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedItemId(null);
+    setDragOverItemId(null);
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center p-8 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Success notification */}
@@ -194,8 +265,27 @@ export default function Home() {
             todos.map((todo) => (
               <div
                 key={todo.id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex items-center gap-4"
+                draggable
+                onDragStart={(e) => handleDragStart(e, todo.id)}
+                onDragOver={(e) => handleDragOver(e, todo.id)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, todo.id)}
+                onDragEnd={handleDragEnd}
+                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex items-center gap-4 transition-all cursor-move ${
+                  draggedItemId === todo.id ? 'opacity-50 scale-95' : ''
+                } ${
+                  dragOverItemId === todo.id && draggedItemId !== todo.id
+                    ? 'border-2 border-blue-500 border-dashed'
+                    : ''
+                }`}
               >
+                {/* Drag handle */}
+                <div className="flex items-center text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M9 3h2v2H9V3zm0 4h2v2H9V7zm0 4h2v2H9v-2zm0 4h2v2H9v-2zm0 4h2v2H9v-2zm4-16h2v2h-2V3zm0 4h2v2h-2V7zm0 4h2v2h-2v-2zm0 4h2v2h-2v-2zm0 4h2v2h-2v-2z" />
+                  </svg>
+                </div>
+
                 <div className="flex-1">
                   {editingTodoId === todo.id ? (
                     <div className="flex gap-2">
