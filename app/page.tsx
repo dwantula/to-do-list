@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTodos, addTodo as addTodoSupabase, updateTodoStatus, deleteTodo as deleteTodoSupabase } from '@/lib/supabase/todos';
+import { getTodos, addTodo as addTodoSupabase, updateTodoStatus, updateTodoText, deleteTodo as deleteTodoSupabase } from '@/lib/supabase/todos';
 import { Database, TodoStatus } from '@/types/supabase';
 
 type Todo = Database['public']['Tables']['todos']['Row'];
@@ -14,6 +14,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showNotification, setShowNotification] = useState(false);
+  const [editingTodoId, setEditingTodoId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
 
   useEffect(() => {
     loadTodos();
@@ -89,9 +91,46 @@ export default function Home() {
     setTodoToDelete(null);
   };
 
+  const startEditing = (id: number, currentText: string) => {
+    setEditingTodoId(id);
+    setEditingText(currentText);
+  };
+
+  const cancelEditing = () => {
+    setEditingTodoId(null);
+    setEditingText('');
+  };
+
+  const saveRename = async (id: number) => {
+    if (editingText.trim() === '') {
+      cancelEditing();
+      return;
+    }
+
+    try {
+      setError(null);
+      await updateTodoText(id, editingText);
+      setTodos(todos.map(todo =>
+        todo.id === id ? { ...todo, text: editingText } : todo
+      ));
+      cancelEditing();
+    } catch (err) {
+      setError('Failed to rename task');
+      console.error('Error renaming todo:', err);
+    }
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       addTodo();
+    }
+  };
+
+  const handleEditKeyPress = (e: React.KeyboardEvent, id: number) => {
+    if (e.key === 'Enter') {
+      saveRename(id);
+    } else if (e.key === 'Escape') {
+      cancelEditing();
     }
   };
 
@@ -158,7 +197,45 @@ export default function Home() {
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex items-center gap-4"
               >
                 <div className="flex-1">
-                  <p className="text-gray-800 dark:text-gray-200">{todo.text}</p>
+                  {editingTodoId === todo.id ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onKeyDown={(e) => handleEditKeyPress(e, todo.id)}
+                        className="flex-1 px-3 py-1 border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-blue-400"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => saveRename(todo.id)}
+                        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
+                        title="Save"
+                      >
+                        ✓
+                      </button>
+                      <button
+                        onClick={cancelEditing}
+                        className="px-3 py-1 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors"
+                        title="Cancel"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="text-gray-800 dark:text-gray-200">{todo.text}</p>
+                      <button
+                        onClick={() => startEditing(todo.id, todo.text)}
+                        className="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                        title="Rename task"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2">
